@@ -15,12 +15,14 @@ config();
 // Import our modules
 import { KnowledgeGraphManager } from "./knowledge-graph.js";
 import { RobertCMartinExpert } from "./experts/robert_c_martin/index.js";
+import { MartinFowlerExpert } from "./experts/martin_fowler/index.js";
 
 /**
  * Initialize the knowledge graph manager and experts
  */
 const knowledgeGraphManager = new KnowledgeGraphManager();
 const bobExpert = new RobertCMartinExpert(knowledgeGraphManager);
+const martinExpert = new MartinFowlerExpert(knowledgeGraphManager);
 
 /**
  * Schema for the read_graph tool
@@ -62,8 +64,9 @@ const server = new Server(
  * Configure the available tools
  */
 server.setRequestHandler(ListToolsRequestSchema, async () => {
-  // Get Bob's tool configuration
+  // Get tool configurations
   const bobToolConfig = bobExpert.getToolConfig();
+  const martinToolConfig = martinExpert.getToolConfig();
 
   return {
     tools: [
@@ -118,6 +121,12 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         name: bobToolConfig.name,
         description: bobToolConfig.description,
         inputSchema: bobToolConfig.inputSchema,
+      },
+      // Add Martin's tool
+      {
+        name: martinToolConfig.name,
+        description: martinToolConfig.description,
+        inputSchema: martinToolConfig.inputSchema,
       },
     ],
   };
@@ -189,6 +198,20 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             {
               type: "text",
               text: JSON.stringify(await bobExpert.reviewCode(args), null, 2),
+            },
+          ],
+        };
+
+      case "ask_martin":
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                await martinExpert.reviewCode(args),
+                null,
+                2
+              ),
             },
           ],
         };

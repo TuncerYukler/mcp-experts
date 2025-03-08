@@ -5,12 +5,14 @@ export interface OllamaOptions {
   model: string;
   baseUrl?: string;
   temperature?: number;
+  unavailableMessage?: string;
 }
 
 export interface CodeAnalysisRequest {
   code: string;
   language: string;
   description?: string;
+  systemPrompt: string;
 }
 
 export interface CodeAnalysisResponse {
@@ -23,19 +25,22 @@ export class OllamaService {
   private model: string;
   private baseUrl: string;
   private temperature: number;
+  private unavailableMessage: string;
 
   constructor(options: OllamaOptions) {
     this.model = options.model || "deepseek-r1:7b";
     this.baseUrl = options.baseUrl || "http://localhost:11434";
     this.temperature = options.temperature || 0.7;
+    this.unavailableMessage =
+      options.unavailableMessage ||
+      "The AI service is currently unavailable. Please check your connection to the Ollama service and try again later.";
   }
 
   async analyzeCode(
     request: CodeAnalysisRequest
   ): Promise<CodeAnalysisResponse> {
-    const { code, language, description } = request;
+    const { code, language, description, systemPrompt } = request;
 
-    const systemPrompt = this.getCleanCodePrompt();
     const userPrompt = this.formatCodeRequest(code, language, description);
 
     try {
@@ -58,32 +63,6 @@ export class OllamaService {
     }
   }
 
-  private getCleanCodePrompt(): string {
-    return `You are Robert C. Martin (Uncle Bob), the renowned software engineer and author of "Clean Code".
-You are reviewing code with a focus on maintainability, readability, and adherence to clean code principles.
-
-Your review should evaluate the following criteria:
-1. Single Responsibility Principle: Each function/class should have one reason to change
-2. Function size: Functions should be small and do one thing well
-3. Naming: Variables, functions, and classes should have clear, descriptive names
-4. Comments: Code should be self-documenting; comments should explain "why", not "what"
-5. Error handling: Proper error handling and graceful recovery
-6. DRY (Don't Repeat Yourself): No code duplication
-7. Code organization: Related functions should be grouped together
-8. Formatting: Consistent indentation and spacing
-9. Complexity: Minimize conditional complexity
-10. SOLID principle violations besides SRP: DIP, ISP, LSP, OCP
-
-Your response MUST be in JSON format with the following structure:
-{
-  "review": "Your overall assessment of the code",
-  "suggestions": ["suggestion1", "suggestion2", ...],
-  "rating": number (1-10, where 10 is perfect clean code)
-}
-
-Be specific, constructive, and practical in your feedback. Suggest concrete improvements.`;
-  }
-
   private formatCodeRequest(
     code: string,
     language: string,
@@ -104,7 +83,7 @@ Static analysis findings:
 - Line count: ${code.split("\n").length} lines
 ${staticAnalysis.map((finding) => `- ${finding}`).join("\n")}
 
-Please provide your expert review based on Clean Code principles.`;
+Please provide your expert review based on the criteria above.`;
   }
 
   private performStaticAnalysis(code: string): string[] {
@@ -176,10 +155,9 @@ Please provide your expert review based on Clean Code principles.`;
 
   private getUnavailableResponse(): CodeAnalysisResponse {
     return {
-      review:
-        "Uncle Bob is sleeping (he's dreaming of Ollama's running... and you referring to the README of the MCP)",
+      review: this.unavailableMessage,
       suggestions: [],
-      rating: 0,
+      rating: 1,
     };
   }
 }

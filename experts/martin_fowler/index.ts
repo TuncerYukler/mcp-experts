@@ -9,10 +9,10 @@ import { KnowledgeGraphManager, Entity } from "../../knowledge-graph.js";
 import { OllamaService } from "../../services/ollama.js";
 
 /**
- * Expert implementation for Robert C. Martin (Uncle Bob)
- * Provides code reviews based on Clean Code principles
+ * Expert implementation for Martin Fowler
+ * Provides code reviews focused on refactoring opportunities
  */
-export class RobertCMartinExpert {
+export class MartinFowlerExpert {
   /**
    * The knowledge graph manager instance
    */
@@ -32,7 +32,7 @@ export class RobertCMartinExpert {
         model: process.env.OLLAMA_MODEL || "llama3",
         baseUrl: process.env.OLLAMA_HOST || "http://localhost:11434",
         temperature: 0.5,
-        unavailableMessage: `${expertConfig.nickname} is sleeping (you can ask him later)`,
+        unavailableMessage: `${expertConfig.nickname} is currently unavailable. Please try again later.`,
       });
       this.useOllama = true;
     } catch (error) {
@@ -81,37 +81,37 @@ export class RobertCMartinExpert {
   }
 
   /**
-   * Get the system prompt for Uncle Bob's code reviews
+   * Get the system prompt for Martin Fowler's code reviews
    * @returns The system prompt
    */
-  private getCleanCodePrompt(): string {
-    return `You are ${expertConfig.fullName} (${expertConfig.nickname}), the renowned software engineer and author of "Clean Code".
-You are reviewing code with a focus on maintainability, readability, and adherence to clean code principles.
+  private getRefactoringPrompt(): string {
+    return `You are ${expertConfig.fullName} (${expertConfig.nickname}), renowned software architecture expert and author of "Refactoring" and "Patterns of Enterprise Application Architecture".
+You are reviewing code with a focus on identifying refactoring opportunities and improving software design.
 
 Your review should evaluate the following criteria:
-1. Single Responsibility Principle: Each function/class should have one reason to change
-2. Function size: Functions should be small and do one thing well
-3. Naming: Variables, functions, and classes should have clear, descriptive names
-4. Comments: Code should be self-documenting; comments should explain "why", not "what"
-5. Error handling: Proper error handling and graceful recovery
-6. DRY (Don't Repeat Yourself): No code duplication
-7. Code organization: Related functions should be grouped together
-8. Formatting: Consistent indentation and spacing
-9. Complexity: Minimize conditional complexity
-10. SOLID principle violations besides SRP: DIP, ISP, LSP, OCP
+1. Code smells: Identify duplicated code, long methods, large classes, etc.
+2. Refactoring opportunities: Suggest specific refactorings from your catalog
+3. Design patterns: Identify where appropriate design patterns could be applied
+4. Technical debt: Point out areas where technical debt has accumulated
+5. Architecture concerns: Comment on higher-level structural issues
+6. Naming: Evaluate whether names reveal intent clearly
+7. Testability: Assess how easily the code can be tested
+8. Coupling: Identify tight coupling that could be reduced
+9. Cohesion: Evaluate whether classes and methods have high cohesion
+10. Maintainability: Overall assessment of how maintainable the code is
 
 Your response MUST be in JSON format with the following structure:
 {
   "review": "Your overall assessment of the code",
   "suggestions": ["suggestion1", "suggestion2", ...],
-  "rating": number (1-10, where 10 is perfect clean code)
+  "rating": number (1-10, where 10 is perfect code)
 }
 
-Be specific, constructive, and practical in your feedback. Suggest concrete improvements.`;
+Be specific, constructive, and practical in your feedback. Suggest concrete improvements using established refactoring patterns.`;
   }
 
   /**
-   * Review code for clean code principles
+   * Review code for refactoring opportunities
    * @param rawRequest The code review request
    * @returns Code review with suggestions and rating
    */
@@ -149,7 +149,7 @@ Be specific, constructive, and practical in your feedback. Suggest concrete impr
       code: request.code,
       language: request.language || "unknown",
       description: request.description,
-      systemPrompt: this.getCleanCodePrompt(),
+      systemPrompt: this.getRefactoringPrompt(),
     });
   }
 
@@ -159,41 +159,37 @@ Be specific, constructive, and practical in your feedback. Suggest concrete impr
     const codeLength = request.code.length;
     const language = request.language || "unknown";
 
-    let review = `I've reviewed your ${language} code (${codeLength} characters).`;
+    let review = `I've reviewed your ${language} code (${codeLength} characters) for refactoring opportunities.`;
     const suggestions: string[] = [];
     let rating = 7;
 
     if (codeLength > 500) {
       suggestions.push(
-        "Consider breaking down this code into smaller functions"
+        "Consider breaking down this code into smaller, focused components"
       );
       rating -= 1;
     }
 
-    if (request.code.includes("TODO")) {
+    if (request.code.includes("class") && request.code.includes("extends")) {
       suggestions.push(
-        "Remove TODO comments before submitting production code"
+        "Consider if composition could be more appropriate than inheritance here"
       );
       rating -= 1;
     }
 
-    if (request.code.includes("var ")) {
+    if (request.code.match(/if\s*\(.+\)\s*{[\s\S]+?if\s*\(/g)) {
       suggestions.push(
-        "Use 'const' or 'let' instead of 'var' for better scoping"
+        "Look for opportunities to extract complex conditional logic into guard clauses"
       );
       rating -= 1;
-    }
-
-    if (request.code.includes("function") && !request.code.includes("return")) {
-      suggestions.push(
-        "Functions should generally return a value or clearly indicate side effects"
-      );
     }
 
     suggestions.push(
-      "Remember that functions should do one thing, and do it well"
+      "Apply the 'Replace Conditional with Polymorphism' pattern where appropriate"
     );
-    suggestions.push("Meaningful variable names improve code readability");
+    suggestions.push(
+      "Consider introducing intermediate variables to clarify complex expressions"
+    );
 
     return {
       review,
