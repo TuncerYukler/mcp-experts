@@ -7,6 +7,10 @@ import {
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
+import { config } from "dotenv";
+
+// Load environment variables from .env file
+config();
 
 // Import our modules
 import { KnowledgeGraphManager } from "./knowledge-graph.js";

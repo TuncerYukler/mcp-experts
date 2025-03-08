@@ -6,6 +6,7 @@ import {
   CodeReviewResponseSchema,
 } from "./config.js";
 import { KnowledgeGraphManager, Entity } from "../../knowledge-graph.js";
+import { OllamaService } from "../../services/ollama.js";
 
 /**
  * Expert implementation for Robert C. Martin (Uncle Bob)
@@ -16,6 +17,8 @@ export class RobertCMartinExpert {
    * The knowledge graph manager instance
    */
   private knowledgeGraphManager: KnowledgeGraphManager;
+  private ollamaService: OllamaService | null = null;
+  private useOllama: boolean = false;
 
   /**
    * Constructor
@@ -23,6 +26,18 @@ export class RobertCMartinExpert {
    */
   constructor(knowledgeGraphManager: KnowledgeGraphManager) {
     this.knowledgeGraphManager = knowledgeGraphManager;
+
+    try {
+      this.ollamaService = new OllamaService({
+        model: process.env.OLLAMA_MODEL || "llama3",
+        baseUrl: process.env.OLLAMA_HOST || "http://localhost:11434",
+        temperature: 0.5,
+      });
+      this.useOllama = true;
+    } catch (error) {
+      console.error("Failed to initialize Ollama service:", error);
+      this.useOllama = false;
+    }
   }
 
   /**
@@ -70,25 +85,57 @@ export class RobertCMartinExpert {
    * @returns Code review with suggestions and rating
    */
   async reviewCode(rawRequest: unknown): Promise<CodeReviewResponse> {
-    // Validate and parse the request
     const request = CodeReviewRequestSchema.parse(rawRequest);
 
-    // This is a mock implementation of Bob's review logic
-    // In a real implementation, this might call an LLM to generate a review
+    let response: CodeReviewResponse;
 
-    // Check if we should store in the graph (default to true)
-    const storeInGraph = request.storeInGraph;
+    if (this.useOllama && this.ollamaService) {
+      try {
+        response = await this.getOllamaReview(request);
+      } catch (error) {
+        console.error("Error getting Ollama review:", error);
+        response = await this.getMockReview(request);
+      }
+    } else {
+      response = await this.getMockReview(request);
+    }
 
-    // Generate a simple review based on code length and language
+    if (request.storeInGraph) {
+      await this.storeReviewInGraph(
+        request,
+        response.review,
+        response.suggestions,
+        response.rating
+      );
+    }
+
+    return CodeReviewResponseSchema.parse(response);
+  }
+
+  private async getOllamaReview(
+    request: CodeReviewRequest
+  ): Promise<CodeReviewResponse> {
+    if (!this.ollamaService) {
+      throw new Error("Ollama service is not initialized");
+    }
+
+    return await this.ollamaService.analyzeCode({
+      code: request.code,
+      language: request.language || "unknown",
+      description: request.description,
+    });
+  }
+
+  private async getMockReview(
+    request: CodeReviewRequest
+  ): Promise<CodeReviewResponse> {
     const codeLength = request.code.length;
     const language = request.language || "unknown";
 
-    // Simple mock review
     let review = `I've reviewed your ${language} code (${codeLength} characters).`;
     const suggestions: string[] = [];
-    let rating = 7; // Default reasonable rating
+    let rating = 7;
 
-    // Very basic analysis: check for some code smells
     if (codeLength > 500) {
       suggestions.push(
         "Consider breaking down this code into smaller functions"
@@ -116,26 +163,16 @@ export class RobertCMartinExpert {
       );
     }
 
-    // Add some Clean Code principles
     suggestions.push(
       "Remember that functions should do one thing, and do it well"
     );
     suggestions.push("Meaningful variable names improve code readability");
 
-    // Store the code review in the knowledge graph if requested
-    if (storeInGraph) {
-      await this.storeReviewInGraph(request, review, suggestions, rating);
-    }
-
-    // Generate and return the response
-    const response: CodeReviewResponse = {
+    return {
       review,
       suggestions,
       rating,
     };
-
-    // Validate the response
-    return CodeReviewResponseSchema.parse(response);
   }
 
   /**
