@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mcp-experts"
+version = "0.1.0"
+description = "MCP Expert System for code reviews"
+authors = [
+    {name = "Your Name", email = "your.email@example.com"}
+]
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+dependencies = [
+    "fastapi>=0.104.0",
+    "uvicorn>=0.23.2",
+    "pandas>=2.0.0",
+    "numpy>=1.24.0",
+    "pydantic>=2.3.0",
+    "python-dotenv>=1.0.0",
+    "httpx>=0.24.0",
+    "mcp[cli]>=1.3.0",
+    "requests>=2.32.3",
+]
+
+[project.scripts]
+mcp-experts = "server:main"
+
+[project.urls]
+"Homepage" = "https://github.com/yourusername/mcp-experts"
+"Bug Tracker" = "https://github.com/yourusername/mcp-experts/issues"
+
+[tool.setuptools]
+packages = ["experts", "experts.martin_fowler", "experts.robert_c_martin"] 

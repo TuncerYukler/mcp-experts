@@ -1,20 +1,24 @@
-# MCP Experts - Clean Code Reviewer
+# MCP Code Expert System
 
-An MCP (Model Context Protocol) server that provides code review services following Robert C. Martin's Clean Code principles. The server connects to Ollama for AI-powered code reviews and maintains a knowledge graph of reviewed code.
+A Python-based code review system using the Model Context Protocol (MCP). It provides code review capabilities through simulated expert personas like Martin Fowler and Robert C. Martin (Uncle Bob).
 
 ## Features
 
+- Code review based on Martin Fowler's refactoring principles
 - Code review based on Robert C. Martin's Clean Code principles
-- Automatic static analysis of code
+- Knowledge graph storage of code, reviews, and relationships
 - Integration with Ollama for AI-powered reviews
-- Knowledge graph storage of code and reviews
-- Automatic relationship building between experts, code, and reviews
+- Server-side Event (SSE) support for web integration
 
 ## Prerequisites
 
-### Install Ollama
+### Python 3.10+
 
-[Ollama](https://ollama.com/) is required to run the AI models used for code analysis.
+This project requires Python 3.10 or higher.
+
+### Ollama
+
+[Ollama](https://ollama.com/) is required for AI-powered code reviews.
 
 1. Install Ollama for your platform:
 
@@ -22,10 +26,10 @@ An MCP (Model Context Protocol) server that provides code review services follow
    - **Linux**: `curl -fsSL https://ollama.com/install.sh | sh`
    - **Windows**: Windows WSL2 support via Linux instructions
 
-2. Pull the required model:
+2. Pull a recommended model:
 
    ```bash
-   ollama pull deepseek-r1:7b
+   ollama pull llama3:8b
    ```
 
 3. Start the Ollama server:
@@ -34,104 +38,107 @@ An MCP (Model Context Protocol) server that provides code review services follow
    ollama serve
    ```
 
-   Ollama runs on `http://localhost:11434` by default. Keep this terminal window open.
-
 ## Installation
 
+Run the setup script to install dependencies and create the virtual environment:
+
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd mcp-experts
-
-# Install dependencies
-npm install
-
-# Build the project
-npm run build
+chmod +x setup.sh
+./setup.sh
 ```
 
 ## Configuration
 
-1. Create or modify the `.env` file in the project root:
+Edit the `.env` file to configure (create from `.env.example` if needed):
 
-   ```
-   # Ollama configuration
-   OLLAMA_HOST=http://localhost:11434
-   OLLAMA_MODEL=deepseek-r1:7b
-   ```
+```
+# Knowledge Graph Settings
+KNOWLEDGE_GRAPH_PATH=data/knowledge_graph.json
 
-## Setting Up in Cursor IDE
+# Ollama Configuration (local AI models)
+OLLAMA_HOST=http://localhost:11434
+OLLAMA_MODEL=llama3:8b
+```
 
-### Tool Configuration
+## Usage
 
-1. Open Cursor IDE
-2. Create a new MCP tool configuration:
-   - **Name**: "Code Review (Uncle Bob)"
-   - **Command**: The full path to the `dist/index.js` file in your project
-     ```
-     node /Users/[username]/path/to/mcp-experts/dist/index.js
-     ```
-   - For example: `node /Users/tom/Code/tomsiwik/mcp-experts/dist/index.js`
+### Running the Server
 
-### Usage in Cursor
+#### Standard Mode (for Cursor Integration)
 
-1. With the MCP tool configured, select "Code Review (Uncle Bob)" from your tools menu
-2. Use the `ask_bob` tool to review your code:
+```bash
+source .venv/bin/activate
+python server.py
+```
+
+#### HTTP/SSE Mode (for Web Integration)
+
+```bash
+source .venv/bin/activate
+python server.py --transport sse
+```
+
+This will start the server at `http://localhost:8000/sse` for SSE transport.
+
+For custom port:
+
+```bash
+python server.py --transport sse --port 9000
+```
+
+### Installing in Cursor
+
+To install in Cursor IDE:
+
+```bash
+source .venv/bin/activate
+mcp install server.py --name "Code Expert System"
+```
+
+### Available Tools
+
+The server exposes these tools:
+
+- `ask_martin`: Ask Martin Fowler to review code and suggest refactorings
+- `ask_bob`: Ask Robert C. Martin (Uncle Bob) to review code based on Clean Code principles
+- `read_graph`: Read the entire knowledge graph
+- `search_nodes`: Search for nodes in the knowledge graph
+- `open_nodes`: Open specific nodes by their names
+
+### Example Usage
+
+To review a code snippet with Martin Fowler:
 
 ```json
 {
-  "code": "YOUR_CODE_HERE",
-  "language": "JavaScript",
-  "description": "A description of what the code does"
+  "code": "function calculateTotal(items) {\n  var total = 0;\n  for (var i = 0; i < items.length; i++) {\n    total += items[i].price;\n  }\n  return total;\n}",
+  "language": "javascript",
+  "description": "Calculate the total price of items"
 }
 ```
 
-3. Access the knowledge graph with:
-   - `read_graph`: View the entire knowledge graph
-   - `search_nodes`: Search for specific nodes
-   - `open_nodes`: Open specific nodes by name
+## Project Structure
 
-## Example Usage
+- `server.py`: Main server implementation with MCP integration
+- `experts/`: Expert modules implementing the code review capabilities
+  - `__init__.py`: Shared models and interfaces
+  - `martin_fowler/`: Martin Fowler expert implementation
+  - `robert_c_martin/`: Robert C. Martin expert implementation
+- `knowledge_graph.py`: Knowledge graph for storing code and reviews
+- `ollama_service.py`: Integration with Ollama for AI-powered reviews
+- `examples/`: Example code for review in different languages
+- `requirements.txt`: Python dependencies
+- `setup.sh`: Setup script
 
-To review a code snippet, use the `ask_bob` command:
+## Architecture
 
-```javascript
-// Using the tool in Cursor
-const response = await bob.ask_bob({
-  code: `function calculateTotal(items) {
-    var total = 0;
-    for (var i = 0; i < items.length; i++) {
-      total += items[i].price;
-    }
-    return total;
-  }`,
-  language: "JavaScript",
-  description: "Calculate the total price of items",
-});
+The system follows a modular architecture:
 
-console.log(response);
-```
+1. **Server Layer**: Handles MCP protocol communication and routes requests
+2. **Expert Layer**: Encapsulates code review logic for each expert
+3. **Service Layer**: Provides AI integration and knowledge graph functionality
 
-The response will include a review, suggestions, and a rating:
-
-```json
-{
-  "review": "I've reviewed your JavaScript code (190 characters).",
-  "suggestions": [
-    "Use 'const' or 'let' instead of 'var' for better scoping",
-    "Consider using array methods like reduce instead of a for loop",
-    "Functions should do one thing, and do it well",
-    "Meaningful variable names improve code readability"
-  ],
-  "rating": 5
-}
-```
-
-## Troubleshooting
-
-- **"Uncle Bob is sleeping"**: This message appears when Ollama is not available. Make sure Ollama is running with `ollama serve`.
-- **Model not found**: Make sure you've pulled the model with `ollama pull deepseek-r1:7b` or the model specified in your `.env` file.
-- **Connection issues**: Check that the OLLAMA_HOST value in your .env file matches where Ollama is running (default: `http://localhost:11434`).
+Each expert implements a standard interface allowing for consistent handling and easy addition of new experts.
 
 ## License
 
